@@ -50,7 +50,7 @@ def fetch_vinted_items(
     order: str = "newest_first",
     per_page: int = 20,
     country: str = "fr"
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """
     Fetch items from Vinted by scraping the search page.
     Extracts data from the __NEXT_DATA__ or initial state embedded in the page.
@@ -140,8 +140,8 @@ def fetch_vinted_items(
                         items = data.get("catalog", {}).get("items", []) or data.get("items", [])
                     
                     if items:
-                        logger.info(f"Found {len(items)} items via pattern")
-                        return items[:per_page]
+                        logger.info(f"[SOURCE=live] Found {len(items)} items via pattern")
+                        return {"items": items[:per_page], "source": "live", "is_mock": False, "blocked_reason": None}
                 except json.JSONDecodeError:
                     continue
         
@@ -180,19 +180,17 @@ def fetch_vinted_items(
                     })
         
         if items:
-            logger.info(f"Scraped {len(items)} items from HTML")
-            return items[:per_page]
+            logger.info(f"[SOURCE=live] Scraped {len(items)} items from HTML")
+            return {"items": items[:per_page], "source": "live", "is_mock": False, "blocked_reason": None}
         
-        logger.warning("Could not find items in page - Vinted may have changed their structure")
-        
-        # Return mock data for testing if real scraping fails
-        # This allows the system to be tested while Vinted access is figured out
-        logger.info("Returning mock data for testing purposes")
-        return generate_mock_items(search_text, per_page)
+        blocked_reason = "Could not extract items - Vinted structure changed or blocked"
+        logger.warning(f"[SOURCE=mock] {blocked_reason}")
+        return {"items": generate_mock_items(search_text, per_page), "source": "mock", "is_mock": True, "blocked_reason": blocked_reason}
         
     except Exception as e:
-        logger.error(f"Error fetching Vinted items: {e}")
-        return generate_mock_items(search_text, per_page)
+        blocked_reason = f"Request failed: {str(e)}"
+        logger.error(f"[SOURCE=mock] {blocked_reason}")
+        return {"items": generate_mock_items(search_text, per_page), "source": "mock", "is_mock": True, "blocked_reason": blocked_reason}
 
 
 def generate_mock_items(search_text: str, count: int = 20) -> List[Dict[str, Any]]:
