@@ -25,6 +25,10 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Import and configure Vinted routes
+from vinted_routes import vinted_router, set_db as set_vinted_db
+set_vinted_db(db)
+
 
 # Define Models
 class StatusCheck(BaseModel):
