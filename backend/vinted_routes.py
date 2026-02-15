@@ -48,6 +48,9 @@ class FetchResult(BaseModel):
     items_fetched: int
     items_new: int
     items_existing: int
+    source: str  # "live" or "mock"
+    is_mock: bool
+    blocked_reason: Optional[str] = None
 
 
 class StatsResponse(BaseModel):
