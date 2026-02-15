@@ -173,13 +173,16 @@ async def fetch_for_query(query_id: str):
             await db.vinted_items.insert_one(doc)
             items_new += 1
     
-    logger.info(f"Fetch complete for query {query_id}: {items_new} new, {items_existing} existing")
+    logger.info(f"[SOURCE={source}] Fetch complete for query {query_id}: {items_new} new, {items_existing} existing, is_mock={is_mock}")
     
     return FetchResult(
         query_id=query_id,
         items_fetched=len(raw_items),
         items_new=items_new,
-        items_existing=items_existing
+        items_existing=items_existing,
+        source=source,
+        is_mock=is_mock,
+        blocked_reason=blocked_reason
     )
 
 
