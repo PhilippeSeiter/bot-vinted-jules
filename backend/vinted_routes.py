@@ -126,7 +126,7 @@ async def fetch_for_query(query_id: str):
     query_json = query_doc["query_json"]
     
     # Fetch items from Vinted
-    raw_items = fetch_vinted_items(
+    fetch_result = fetch_vinted_items(
         search_text=query_json.get("search_text", ""),
         catalog_ids=query_json.get("catalog_ids"),
         brand_ids=query_json.get("brand_ids"),
@@ -135,6 +135,11 @@ async def fetch_for_query(query_id: str):
         price_to=query_json.get("price_to"),
         per_page=20
     )
+    
+    raw_items = fetch_result["items"]
+    source = fetch_result["source"]
+    is_mock = fetch_result["is_mock"]
+    blocked_reason = fetch_result["blocked_reason"]
     
     items_new = 0
     items_existing = 0
