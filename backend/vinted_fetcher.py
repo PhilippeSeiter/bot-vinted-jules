@@ -117,8 +117,8 @@ def fetch_vinted_items(
                 catalog = page_props.get("catalog", {})
                 items = catalog.get("items", [])
                 if items:
-                    logger.info(f"Found {len(items)} items via __NEXT_DATA__")
-                    return items[:per_page]
+                    logger.info(f"[SOURCE=live] Found {len(items)} items via __NEXT_DATA__")
+                    return {"items": items[:per_page], "source": "live", "is_mock": False, "blocked_reason": None}
             except json.JSONDecodeError as e:
                 logger.debug(f"Failed to parse __NEXT_DATA__: {e}")
         
