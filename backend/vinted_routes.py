@@ -61,6 +61,17 @@ class StatsResponse(BaseModel):
     item_count: int
 
 
+class LastFetchResponse(BaseModel):
+    query_id: str
+    last_fetch_at: Optional[str] = None
+    last_fetch_source: Optional[str] = None
+    last_fetch_is_mock: Optional[bool] = None
+    last_fetch_blocked_reason: Optional[str] = None
+    last_fetch_items_fetched: Optional[int] = None
+    last_fetch_items_new: Optional[int] = None
+    last_fetch_items_existing: Optional[int] = None
+
+
 # ===== Endpoints =====
 
 @vinted_router.post("/queries", response_model=QueryResponse)
@@ -175,6 +186,20 @@ async def fetch_for_query(query_id: str):
     
     logger.info(f"[SOURCE={source}] Fetch complete for query {query_id}: {items_new} new, {items_existing} existing, is_mock={is_mock}")
     
+    # Persist last fetch metadata to query doc
+    await db.vinted_queries.update_one(
+        {"id": query_id},
+        {"$set": {
+            "last_fetch_at": now,
+            "last_fetch_source": source,
+            "last_fetch_is_mock": is_mock,
+            "last_fetch_blocked_reason": blocked_reason,
+            "last_fetch_items_fetched": len(raw_items),
+            "last_fetch_items_new": items_new,
+            "last_fetch_items_existing": items_existing
+        }}
+    )
+    
     return FetchResult(
         query_id=query_id,
         items_fetched=len(raw_items),
@@ -183,6 +208,28 @@ async def fetch_for_query(query_id: str):
         source=source,
         is_mock=is_mock,
         blocked_reason=blocked_reason
+    )
+
+
+@vinted_router.get("/queries/{query_id}/last-fetch", response_model=LastFetchResponse)
+async def get_last_fetch(query_id: str):
+    """Get metadata from the last fetch run for a query."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    query_doc = await db.vinted_queries.find_one({"id": query_id}, {"_id": 0})
+    if not query_doc:
+        raise HTTPException(status_code=404, detail=f"Query {query_id} not found")
+    
+    return LastFetchResponse(
+        query_id=query_id,
+        last_fetch_at=query_doc.get("last_fetch_at"),
+        last_fetch_source=query_doc.get("last_fetch_source"),
+        last_fetch_is_mock=query_doc.get("last_fetch_is_mock"),
+        last_fetch_blocked_reason=query_doc.get("last_fetch_blocked_reason"),
+        last_fetch_items_fetched=query_doc.get("last_fetch_items_fetched"),
+        last_fetch_items_new=query_doc.get("last_fetch_items_new"),
+        last_fetch_items_existing=query_doc.get("last_fetch_items_existing")
     )
 
 
